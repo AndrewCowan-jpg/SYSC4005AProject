@@ -1,2 +1,19 @@
+from Milestone3.Component import Component
+import random as rand
+class Inspector():
+    def __init__(self, num, componentT1, componentT2):
+        self.inspectorNum = num
+        self.componentT1 = componentT1
+        self.componentT2 = componentT2
+
+    def inspect(self, startT):
+        if self.inspectorNum == 1:
+            return Component("C1", startT)
+        else:
+            random = rand.range(2)
+            if random == 0:
+                return Component("C2", startT)
+            else:
+                return Component("C3", startT)
 
 

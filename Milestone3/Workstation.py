@@ -44,7 +44,7 @@ class Workstation():
         else:
             return False
 
-    def assemble(self):
+    def assemble(self, processingT):
         if self.workSNumber == 1 and len(self.buffer1) > 0:
             self.buffer1.pop(0)
             return Product("P1")
