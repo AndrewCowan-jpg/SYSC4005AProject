@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 
 FILENAME_P1 = "servinsp1.dat"
-FILENAME_P2 = "servinsp2.dat"
-FILENAME_P3 = "servinsp3.dat"
+FILENAME_P2 = "servinsp22.dat"
+FILENAME_P3 = "servinsp23.dat"
 
 FILENAME_W1 = "ws1.dat"
 FILENAME_W2 = "ws2.dat"
