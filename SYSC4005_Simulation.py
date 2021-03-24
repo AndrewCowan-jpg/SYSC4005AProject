@@ -31,6 +31,22 @@ class Inspector:
         self.inspectorStatus = 0;
         self.currentComponent = 0;
         
+
+class WorkStation:
+    '''
+    workStationStatus:
+        0 = blocked
+        1 = working
+    currentComponent:
+        0 = C1
+        1 = C2
+        2 = C3
+    '''
+    def __init__(self, workStationID):
+        self.workStationID = workStationID
+        self.workStationIDStatus = 0;
+        self.currentComponent = 0;
+        
         
 def main():
     dat = pd.read_csv(FILENAME_W1).to_numpy()
