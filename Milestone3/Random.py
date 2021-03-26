@@ -78,7 +78,6 @@ import numpy as np
 class Random():
     def __init__(self, name):
         self.name = name
-        self.index = 0;
         self.type = {}
         self.type['C1'] = 0.09654457318
         self.type['C2'] = 0.06436288999
@@ -88,5 +87,5 @@ class Random():
         self.type['W3'] = 0.1136934688
         
     def getRand(self):
-        lam = type[self.name]
+        lam = self.type[self.name]
         return (-1/lam) * np.log(random.random())
