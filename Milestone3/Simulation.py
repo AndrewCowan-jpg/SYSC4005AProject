@@ -12,27 +12,16 @@ class States(Enum):
     ASSEMBLING = 3
 
 
-c1Times = Random("C1")
-c2Times = Random("C2")
-c3Times = Random("C3")
-w1Times = Random("W1")
-w2Times = Random("W2")
-w3Times = Random("W3")
-
-workS1 = Workstation(1, "C1", "", States.WAITING)
-workS2 = Workstation(2, "C1", "C2", States.WAITING)
-workS3 = Workstation(3, "C1", "C3", States.WAITING)
-
-insp1 = Inspector(1, "C1", "", States.WAITING)
-insp2 = Inspector(2, "C2", "C3", States.WAITING)
 
 
 def simulator():
+    initClasses()
     processT1 = 0
     processT2 = 0
     processT3 = 0
     insp2TotalBTime = 0
     for i in range(0, 1000):
+    #check workstations, then inspect
         if workS1.checkAssemble() and workS1.getState() == States.WAITING:
             processT1 = w1Times.getRand()
             p1 = workS1.assemble(processT1)
@@ -59,7 +48,8 @@ def simulator():
             buf3 = workS3.checkBuffer("C1")
             if insp2.state == States.BLOCKED:
                 insp2.timeBlocked(inspectTime1)
-
+            #check for buffer length
+            #update workstation time due to waiting from lack of C1
             if buf1 <= buf2 and buf1 <= buf3 and buf1 < 2:
                 workS1.addComponent(c1)
                 workS1.timeWaited(inspectTime1, "C1")
@@ -81,6 +71,7 @@ def simulator():
                     workS2.addComponent(c2)
                     workS2.timeWaited(inspectTime2, "C2")
                 else:
+                    # if no space in ws2 buffer, go blocked
                     insp2.setState(States.BLOCKED)
                     workS2.timeWaited(inspectTime2, "C2")
                     insp2.blockC = c2
@@ -135,4 +126,60 @@ def simulator():
             else:
                 processT3 -= inspectTime1
 
-simulator()
+
+
+'''
+Initialize classes
+return tuple containing arrays of inspectors and workstations
+'''
+def initClasses():
+    c1Times = Random("C1")
+    c2Times = Random("C2")
+    c3Times = Random("C3")
+    w1Times = Random("W1")
+    w2Times = Random("W2")
+    w3Times = Random("W3")
+    
+    workS1 = Workstation(1, "C1", "", States.WAITING)
+    workS2 = Workstation(2, "C1", "C2", States.WAITING)
+    workS3 = Workstation(3, "C1", "C3", States.WAITING)
+    
+    inspector1 = Inspector(1, "C1", "", States.WAITING)     #Formerlly insp1
+    inspector2 = Inspector(2, "C2", "C3", States.WAITING)   #Formerly insp2
+    
+    inspectors = [inspector1,inspector2]
+    workstations = [workS1,workS2,workS3]
+    
+    return (inspectors,workstations)
+
+'''
+If inspector not blocked, create new component then set blocked
+if inspector blocked, update blocked time
+'''
+def checkInspectors(inspector,currentTime):
+    if inspector.state == States.WAITING:
+        inspector.inspect(currentTime)
+        inspector.setState(States.BLOCKED)
+    elif inspector.state == States.BLOCKED:
+        inspector.timeBlocked(currentTime)
+        return False
+
+def addToBuffer(inspector,workstations):
+    
+        
+        
+
+def main():
+    # simulator()    <- Mike's code
+    inspectors,workstations = initClasses()
+    
+    #Step 1: Inspectors create component (Assume inspector waiting)
+    for i in inspectors:
+        component = checkInspectors(i,currentTime)
+    
+    #Step 2: Add component to buffer (Assume inspector blocked)
+            
+    
+
+if __name__ == "__main__":
+    main()
