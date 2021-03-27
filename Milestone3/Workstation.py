@@ -8,7 +8,8 @@ class Workstation():
         self.buffer2 = []
         self.buffer1T = buffer1T
         self.buffer2T = buffer2T
-        self.waitTime = 0
+        self.waitTime1 = 0
+        self.waitTime2 = 0
         self.state = state
 
     def addComponent(self, component):
@@ -42,29 +43,50 @@ class Workstation():
     def assemble(self, processingT):
         if self.workSNumber == 1 and len(self.buffer1) > 0:
             self.buffer1.pop(0)
-            totalTime = processingT + self.waitTime
-            self.waitTime = 0
+            totalTime = processingT + self.waitTime1
+            self.waitTime1 = 0
             return Product("P1", totalTime)
+
         elif self.workSNumber == 2 and len(self.buffer1) > 0 and len(self.buffer2) > 0:
             self.buffer1.pop(0)
             self.buffer2.pop(0)
-            totalTime = processingT + self.waitTime
-            self.waitTime = 0
-            return Product("P2", totalTime)
+            if self.waitTime1 > self.waitTime2:
+                totalTime = processingT + self.waitTime1
+                self.waitTime1 = 0
+                self.waitTime2 = 0
+                return Product("P2", totalTime)
+            else:
+                totalTime = processingT + self.waitTime2
+                self.waitTime1 = 0
+                self.waitTime2 = 0
+                return Product("P2", totalTime)
+
         elif self.workSNumber == 3 and len(self.buffer1) > 0 and len(self.buffer2) > 0:
             self.buffer1.pop(0)
             self.buffer2.pop(0)
-            totalTime = processingT + self.waitTime
-            self.waitTime = 0
-            return Product("P3",totalTime)
+            if self.waitTime1 > self.waitTime2:
+                totalTime = processingT + self.waitTime1
+                self.waitTime1 = 0
+                self.waitTime2 = 0
+                return Product("P3", totalTime)
+            else:
+                totalTime = processingT + self.waitTime2
+                self.waitTime1 = 0
+                self.waitTime2 = 0
+                return Product("P3", totalTime)
 
-    def timeWaited(self, waitTime):
-        self.waitTime += waitTime
+    def timeWaited(self, waitTime, component):
+        if self.workSNumber == 1:
+            self.waitTime1 += waitTime
+        elif component == self.buffer1T:
+            self.waitTime1 += waitTime
+        elif component == self.buffer2T:
+            self.waitTime2 += waitTime
 
     def setState(self, state):
         self.state = state
 
     def getState(self):
-        return self.state.name
+        return self.state
 
 

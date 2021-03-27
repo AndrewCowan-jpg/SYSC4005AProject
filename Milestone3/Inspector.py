@@ -1,6 +1,7 @@
 from Milestone3.Component import Component
 import random as rand
 
+
 class Inspector():
     def __init__(self, num, componentT1, componentT2, state):
         self.inspectorNum = num
@@ -8,6 +9,7 @@ class Inspector():
         self.componentT2 = componentT2
         self.state = state
         self.blockTime = 0
+        self.blockC = ""
 
     def inspect(self, startT, component):
         if self.inspectorNum == 1:
@@ -21,8 +23,8 @@ class Inspector():
     def setState(self, state):
         self.state = state
 
-    def getState(self):
-        return self.state.name
-
     def timeBlocked(self, timeBlocked):
         self.blockTime += timeBlocked
+
+    def componentBlocked(self, component):
+        self.blockC = component
