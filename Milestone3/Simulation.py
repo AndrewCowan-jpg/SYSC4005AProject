@@ -149,24 +149,28 @@ def main():
     
     while currentTime < RUN_TIME:
         print("Current Time: " +str(currentTime))
-        #Step 1: Inspectors create component 
-        for i in inspectors:
-            checkInspectors(i,currentTime)
         
-        #Step 2: Add component to buffer 
-        for i in inspectors:
-            addToBuffer(i,workstations,currentTime,inspectorBlockedList)
+        #This loop accounts for system changes at the same time
+        for j in range(3):
+            #Step 1: Inspectors create component 
+            for i in inspectors:
+                checkInspectors(i,currentTime)
             
-        #Step 3: Recheck inspectors
-        for i in inspectors:
-            checkInspectors(i,currentTime)
+            #Step 2: Add component to buffer 
+            for i in inspectors:
+                addToBuffer(i,workstations,currentTime,inspectorBlockedList)
+                
+            #Step 3: Recheck inspectors
+            for i in inspectors:
+                checkInspectors(i,currentTime)
+            
+            #Step 3: Update workstation states
+            for i in workstations:
+                checkWorkstation(i, currentTime, productList)
+            
+            #Step 4: Assemble Products
+            assembleWorkstations(workstations,currentTime)
         
-        #Step 3: Update workstation states
-        for i in workstations:
-            checkWorkstation(i, currentTime, productList)
-        
-        #Step 4: Assemble Products
-        assembleWorkstations(workstations,currentTime)
         
         #Step 5: Increment time
         currentTime = getNextTime(inspectors,workstations,currentTime)
