@@ -162,13 +162,13 @@ def main():
             checkInspectors(i,currentTime)
         
         #Step 3: Update workstation states
-        #TO DO: Gather products, detect assembly times
         for i in workstations:
             checkWorkstation(i, currentTime, productList)
         
         #Step 4: Assemble Products
         assembleWorkstations(workstations,currentTime)
         
+        #Step 5: Increment time
         currentTime = getNextTime(inspectors,workstations,currentTime)
         
     print(productList)
