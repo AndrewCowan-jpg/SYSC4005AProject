@@ -18,7 +18,7 @@ class Workstation():
         self.inspectionTime = 0  #Time to inspect component
         self.nextTime = 0       #Contains the time for switching from WAITING to WORKING
         
-        self.Product = None
+        self.product = None
 
     '''
     Workstation contains buffers
@@ -28,9 +28,13 @@ class Workstation():
         if component.name == self.buffer1T:
             if len(self.buffer1) <= 2:
                 self.buffer1.append(component)
+                return True
         elif component.name == self.buffer2T:
             if len(self.buffer2) <= 2:
                 self.buffer2.append(component)
+                return True
+        else:
+            return False
                 
     '''
     Used for size check of buffers
@@ -41,7 +45,7 @@ class Workstation():
         elif bufferT == self.buffer2T:
             return len(self.buffer2)
         else:
-            return False
+            return 2
     
     '''
     Used for workstation to determine if components available to assemble
@@ -61,17 +65,17 @@ class Workstation():
         self.currentTime = currentTime
         if self.workSNumber == 1 and len(self.buffer1) > 0:
             component1 = self.buffer1.pop(0)
-            self.Product = Product("P1", component1, None)
+            self.product = Product("P1", component1, None)
 
         elif self.workSNumber == 2 and len(self.buffer1) > 0 and len(self.buffer2) > 0:
             component1 = self.buffer1.pop(0)
             component2 = self.buffer2.pop(0)
-            self.Product = Product("P1", component1, component2)
+            self.product = Product("P2", component1, component2)
 
         elif self.workSNumber == 3 and len(self.buffer1) > 0 and len(self.buffer2) > 0:
             component1 = self.buffer1.pop(0)
             component2 = self.buffer2.pop(0)
-            self.Product = Product("P1", component1, component2)
+            self.product = Product("P3", component1, component2)
         
         self.inspectionTime = self.random.getRand()
         self.getNextTime()
@@ -84,7 +88,7 @@ class Workstation():
         # print("Workstation Next Time = " + str(self.nextTime))
         return self.nextTime
     
-    def getProduct(self,currentTime):
+    def getProduct(self):
         tempProduct = self.product
         self.product = None
         return tempProduct

@@ -58,7 +58,7 @@ class Inspector():
     Removes components from inspector and updates time blocked
     '''
     def getComponent(self,currentTime):
-        self.blockedTime = currentTime - self.inspectionTime
+        self.blockedTime = currentTime - self.nextTime
         
         tempComponent = self.component
         self.component = None

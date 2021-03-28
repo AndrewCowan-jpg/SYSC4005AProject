@@ -8,10 +8,12 @@ class Product:
         
     def calculateProductionTime(self,currentTime):
         earliestTime = 0
-        
-        if self.component1.startT < self.component2.startT:
-            earliestTime = self.component1.startT
-        else:
-            earliestTime = self.component2.startT
-            
-        self.totalTime = currentTime - earliestTime
+        if self.component2 == None:
+            self.totalTime = currentTime - self.component1.startT
+        else:    
+            if self.component1.startT < self.component2.startT:
+                earliestTime = self.component1.startT
+            else:
+                earliestTime = self.component2.startT
+                
+            self.totalTime = currentTime - earliestTime
