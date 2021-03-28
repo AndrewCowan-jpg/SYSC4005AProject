@@ -45,6 +45,7 @@ class Inspector():
     
     def getNextTime(self):
         self.nextTime = self.currentTime + self.inspectionTime
+        # print("Inspector Next Time = " + str(self.nextTime))
         return self.nextTime
     
     def setState(self, state):
