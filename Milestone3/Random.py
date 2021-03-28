@@ -1,7 +1,7 @@
 import random
 import numpy as np
 
-class Random():
+class RandomNum():
     def __init__(self, name):
         self.name = name
         self.type = {}
