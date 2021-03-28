@@ -63,7 +63,6 @@ def checkBufferCapacity(component, workstations):
 '''
 If Inspector has component available
 Requires buffer lengths to be checked
-TODO: Log blocked time of inspector
 '''
 def addToBuffer(inspector,workstations,currentTime,inspectorBlockedList):
     #Check buffer capacity before accepting component
@@ -111,7 +110,6 @@ def checkWorkstation(workstation, currentTime, productList):
         
 '''
 If workstation waiting, assemble and produce product
-TO DO: Check timing, product times
 '''
 def assembleWorkstations(workstations,currentTime):
     for i in workstations:
@@ -144,10 +142,6 @@ def getNextTime(inspectors,workstations,currentTime):
 def main():
     
     inspectors,workstations = initClasses()
-    print("Inspectors: ")
-    print(inspectors)
-    print("Workstations: ")
-    print(workstations)
     
     productList = []
     inspectorBlockedList = []
