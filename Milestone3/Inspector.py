@@ -31,15 +31,15 @@ class Inspector():
         self.currentTime = currentTime     #possible removal, may not be required
         if self.componentT1 == "C1":
             self.inspectionTime = self.componentDict[self.componentT1].getRand()
-            self.component = Component(self.componentT1,self.currentTime)
+            self.component = Component(self.componentT1, self.currentTime)
         else:
             randomNumber = randrange(2) #Creates number between 0 and 1
             if randomNumber == 1:
                 self.inspectionTime = self.componentDict[self.componentT1].getRand()
-                self.component = Component(self.componentT1,self.currentTime)
+                self.component = Component(self.componentT1, self.currentTime)
             else:
                 self.inspectionTime = self.componentDict[self.componentT2].getRand()
-                self.component = Component(self.componentT2,self.currentTime)
+                self.component = Component(self.componentT2, self.currentTime)
         
         self.getNextTime()
     
@@ -57,7 +57,7 @@ class Inspector():
     '''
     Removes components from inspector and updates time blocked
     '''
-    def getComponent(self,currentTime):
+    def getComponent(self, currentTime):
         self.blockedTime = currentTime - self.nextTime
         
         tempComponent = self.component

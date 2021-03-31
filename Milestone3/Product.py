@@ -6,9 +6,9 @@ class Product:
         
         self.totalTime = 0
         
-    def calculateProductionTime(self,currentTime):
+    def calculateProductionTime(self, currentTime):
         earliestTime = 0
-        if self.component2 == None:
+        if self.component2 is None:
             self.totalTime = currentTime - self.component1.startT
         else:    
             if self.component1.startT < self.component2.startT:
