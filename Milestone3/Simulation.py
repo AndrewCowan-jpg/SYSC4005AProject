@@ -2,15 +2,19 @@ from enum import Enum
 from Inspector import Inspector
 from Workstation import Workstation
 import pandas as pd
+import math
 
 '''
 Change run time to change simulation length
 '''
-RUN_TIME = 10000
+RUN_TIME = 1000
 
 # dataframes for the calculated values of each replica
-blockTimes = pd.DataFrame(columns=['Total Blocked Time', 'RunTime'])
-throughput = pd.DataFrame(columns=['Throughput(product/hour)'])
+blockTimes = pd.DataFrame(columns=['Replica', 'Total Blocked Time', 'RunTime'])
+throughput = pd.DataFrame(columns=['Replica', 'Throughput(product/hour)', 'RunTime'])
+
+# Number of sim replications
+TOTAL_REPS = 10
 
 
 class States(Enum):
@@ -46,12 +50,12 @@ def checkInspectors(inspector, currentTime):
     if inspector.state == States.WAITING:
         inspector.inspect(currentTime)
         inspector.setState(States.WORKING)
-        #print("Inspector " + str(inspector.inspectorNum) + " WAITING TO WORKING")
-        #print("Inspector " + str(inspector.inspectorNum) + " Next Time " + str(inspector.nextTime))
+        # print("Inspector " + str(inspector.inspectorNum) + " WAITING TO WORKING")
+        # print("Inspector " + str(inspector.inspectorNum) + " Next Time " + str(inspector.nextTime))
     elif inspector.state == States.WORKING:
         if currentTime >= inspector.getNextTime():
             inspector.setState(States.BLOCKED)
-           # print("Inspector " + str(inspector.inspectorNum) + " BLOCKED")
+        # print("Inspector " + str(inspector.inspectorNum) + " BLOCKED")
     # State change from blocked to waiting occurs during buffer check
     # elif inspector.state == States.BLOCKED:
 
@@ -69,22 +73,20 @@ def checkBufferCapacity(component, workstations):
 If Inspector has component available
 Requires buffer lengths to be checked
 '''
-
-
 def addToBuffer(inspector, workstations, currentTime, inspectorBlockedList):
     # Check buffer capacity before accepting component
     if inspector.state == States.BLOCKED:
         if checkBufferCapacity(inspector.peakComponent(), workstations):
             component = inspector.getComponent(currentTime)
-            #print("Component: " + component.name)
+            # print("Component: " + component.name)
 
             # C2 or C3 directed to appropriate buffer
             if component.name == "C2" or component.name == "C3":
                 for i in workstations:
                     if i.addComponent(component):
-                        #print("Inspector " + str(
-                            #inspector.inspectorNum) + " Component: " + component.name + " Added to Buffer " + str(
-                            #i.workSNumber))
+                        # print("Inspector " + str(
+                        # inspector.inspectorNum) + " Component: " + component.name + " Added to Buffer " + str(
+                        # i.workSNumber))
                         break
 
             # C1 optimization assuming three C1 buffers
@@ -95,9 +97,9 @@ def addToBuffer(inspector, workstations, currentTime, inspectorBlockedList):
                         if j.checkBuffer(component.name) == i:
                             if j.addComponent(component):
                                 addedComponent = True
-                                #print("Inspector " + str(
-                                    #inspector.inspectorNum) + " Component: " + component.name + " Added to Buffer " + str(
-                                    #j.workSNumber))
+                                # print("Inspector " + str(
+                                # inspector.inspectorNum) + " Component: " + component.name + " Added to Buffer " + str(
+                                # j.workSNumber))
                                 break
                     if addedComponent:
                         break
@@ -117,7 +119,7 @@ def checkWorkstation(workstation, currentTime, productList):
     if workstation.state == States.WORKING:
         if currentTime >= workstation.getNextTime():
             product = workstation.getProduct()
-            #print("Workstation " + str(workstation.workSNumber) + " Created Product " + product.name)
+            # print("Workstation " + str(workstation.workSNumber) + " Created Product " + product.name)
             product.calculateProductionTime(workstation.getNextTime())
             productList.append([product.name, product.totalTime])
             workstation.setState(States.WAITING)
@@ -133,8 +135,8 @@ def assembleWorkstations(workstations, currentTime):
         if i.getState() == States.WAITING and i.checkAssemble():
             i.assemble(currentTime)
             i.setState(States.WORKING)
-            #print("Workstation " + str(i.workSNumber) + " Assembling")
-            #print("Workstation " + str(i.workSNumber) + " Next Time " + str(i.nextTime))
+            # print("Workstation " + str(i.workSNumber) + " Assembling")
+            # print("Workstation " + str(i.workSNumber) + " Next Time " + str(i.nextTime))
 
 
 '''
@@ -168,15 +170,15 @@ def outputProduct(rep, dataframe):
 '''
 Calculates product throughput per/hour 
 '''
-def productThroughput(dataframe):
-    return len(dataframe.index) / (RUN_TIME/60)
+def productThroughput(rep, dataframe):
+    return rep, len(dataframe.index) / (RUN_TIME / 60), RUN_TIME
 
 
 '''
 Calculates the Total blocked time for each replica
 '''
-def totalBlockedTime(dataframe):
-    return dataframe['Blocked Time'].sum(), RUN_TIME
+def totalBlockedTime(rep, dataframe):
+    return rep, dataframe['Blocked Time'].sum(), RUN_TIME
 
 
 '''
@@ -208,7 +210,7 @@ def main(replica):
     currentTime = 0
 
     while currentTime < RUN_TIME:
-        #print("Current Time: " + str(currentTime))
+        # print("Current Time: " + str(currentTime))
 
         # This loop accounts for system changes at the same time
         for j in range(3):
@@ -239,12 +241,31 @@ def main(replica):
     outputInspector(replica, blockedInspector)
     outputProduct(replica, products)
 
-    blockTimes.loc[replica] = totalBlockedTime(blockedInspector)
-    throughput.loc[replica] = productThroughput(products)
-    blockTimes.to_excel('Simulation_Block_Times.xlsx')
-    throughput.to_excel('Simulation_Throughputs.xlsx')
+    blockTimes.loc[replica] = totalBlockedTime(replica, blockedInspector)
+    throughput.loc[replica] = productThroughput(replica, products)
+    if replica == TOTAL_REPS:
+        blockTimes.loc[replica + 1] = 'Average:', blockTimes['Total Blocked Time'].mean(), RUN_TIME
+        throughput.loc[replica + 1] = 'Average:', throughput['Throughput(product/hour)'].mean(), RUN_TIME
+
+        blockTimes.loc[replica + 2] = 'Std:', blockTimes['Total Blocked Time'].std(), RUN_TIME
+        throughput.loc[replica + 2] = 'Std:', throughput['Throughput(product/hour)'].std(), RUN_TIME
+
+        blockTimes.loc[replica + 3] = 'CI:', blockTimes.iloc[replica]['Total Blocked Time']-(2.23*(blockTimes.iloc[replica + 1]['Total Blocked Time'])/math.sqrt(replica)), \
+                                      blockTimes.iloc[replica]['Total Blocked Time'] + (2.23 * (blockTimes.iloc[replica + 1]['Total Blocked Time']) / math.sqrt(replica))
+
+        throughput.loc[replica + 3] = 'CI:', throughput.iloc[replica]['Throughput(product/hour)']-(2.23*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica)), \
+                                      throughput.iloc[replica]['Throughput(product/hour)']+(2.23*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica))
+
+        blockTimes.loc[replica + 4] = 'PI:', blockTimes.iloc[replica]['Total Blocked Time']-(2.23*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica)))), \
+                                      blockTimes.iloc[replica]['Total Blocked Time']+(2.23*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica))))
+
+        throughput.loc[replica + 4] = 'PI:', throughput.iloc[replica]['Throughput(product/hour)']-(2.23*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica)))), \
+                                      throughput.iloc[replica]['Throughput(product/hour)']+(2.23*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica))))
+
+    blockTimes.to_excel('Simulation_Block_Times.xlsx', index=False)
+    throughput.to_excel('Simulation_Throughputs.xlsx', index=False)
 
 
 if __name__ == "__main__":
-    for r in range(1, 11):
+    for r in range(1, TOTAL_REPS + 1):
         main(r)
