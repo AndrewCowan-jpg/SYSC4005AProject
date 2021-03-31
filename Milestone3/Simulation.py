@@ -3,6 +3,7 @@ from Inspector import Inspector
 from Workstation import Workstation
 import pandas as pd
 import math
+from styleframe import StyleFrame
 
 '''
 Change run time to change simulation length
@@ -250,16 +251,20 @@ def main(replica):
         blockTimes.loc[replica + 2] = 'Std:', blockTimes['Total Blocked Time'].std(), RUN_TIME
         throughput.loc[replica + 2] = 'Std:', throughput['Throughput(product/hour)'].std(), RUN_TIME
 
-        blockTimes.loc[replica + 3] = 'CI:', blockTimes.iloc[replica]['Total Blocked Time']-(2.23*(blockTimes.iloc[replica + 1]['Total Blocked Time'])/math.sqrt(replica)), \
+        blockTimes.loc[replica + 3] = 'CI:+-' + "{:.3f}".format(2.23*(blockTimes.iloc[replica + 1]['Total Blocked Time'])/math.sqrt(replica)), \
+                                      blockTimes.iloc[replica]['Total Blocked Time']-(2.23*(blockTimes.iloc[replica + 1]['Total Blocked Time'])/math.sqrt(replica)), \
                                       blockTimes.iloc[replica]['Total Blocked Time'] + (2.23 * (blockTimes.iloc[replica + 1]['Total Blocked Time']) / math.sqrt(replica))
 
-        throughput.loc[replica + 3] = 'CI:', throughput.iloc[replica]['Throughput(product/hour)']-(2.23*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica)), \
+        throughput.loc[replica + 3] = 'CI:+-' + "{:.3f}".format(2.23*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica)), \
+                                      throughput.iloc[replica]['Throughput(product/hour)']-(2.23*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica)), \
                                       throughput.iloc[replica]['Throughput(product/hour)']+(2.23*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica))
 
-        blockTimes.loc[replica + 4] = 'PI:', blockTimes.iloc[replica]['Total Blocked Time']-(2.23*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica)))), \
+        blockTimes.loc[replica + 4] = 'PI:+-' + "{:.3f}".format(2.23*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica)))), \
+                                      blockTimes.iloc[replica]['Total Blocked Time']-(2.23*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica)))), \
                                       blockTimes.iloc[replica]['Total Blocked Time']+(2.23*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica))))
 
-        throughput.loc[replica + 4] = 'PI:', throughput.iloc[replica]['Throughput(product/hour)']-(2.23*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica)))), \
+        throughput.loc[replica + 4] = 'PI:+-' + "{:.3f}".format(2.23*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica)))), \
+                                      throughput.iloc[replica]['Throughput(product/hour)']-(2.23*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica)))), \
                                       throughput.iloc[replica]['Throughput(product/hour)']+(2.23*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica))))
 
     blockTimes.to_excel('Simulation_Block_Times.xlsx', index=False)
