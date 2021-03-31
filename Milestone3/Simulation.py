@@ -1,138 +1,271 @@
 from enum import Enum
-from random import *
+from Inspector import Inspector
+from Workstation import Workstation
+import pandas as pd
+import math
 
-from Milestone3.Inspector import Inspector
-from Milestone3.Random import Random
-from Milestone3.Workstation import Workstation
+'''
+Change run time to change simulation length
+'''
+RUN_TIME = 1000
+
+# dataframes for the calculated values of each replica
+blockTimes = pd.DataFrame(columns=['Replica', 'Total Blocked Time', 'RunTime'])
+throughput = pd.DataFrame(columns=['Replica', 'Throughput(product/hour)', 'RunTime'])
+
+# Number of sim replications
+TOTAL_REPS = 10
 
 
 class States(Enum):
     WAITING = 1
     BLOCKED = 2
-    ASSEMBLING = 3
+    WORKING = 3
 
 
-c1Times = Random("C1")
-c2Times = Random("C2")
-c3Times = Random("C3")
-w1Times = Random("W1")
-w2Times = Random("W2")
-w3Times = Random("W3")
+'''
+Initialize classes
+return tuple containing arrays of inspectors and workstations
+'''
+def initClasses():
+    workS1 = Workstation(1, "C1", "", States.WAITING)
+    workS2 = Workstation(2, "C1", "C2", States.WAITING)
+    workS3 = Workstation(3, "C1", "C3", States.WAITING)
 
-workS1 = Workstation(1, "C1", "", States.WAITING)
-workS2 = Workstation(2, "C1", "C2", States.WAITING)
-workS3 = Workstation(3, "C1", "C3", States.WAITING)
+    inspector1 = Inspector(1, "C1", "", States.WAITING)  # Formerlly insp1
+    inspector2 = Inspector(2, "C2", "C3", States.WAITING)  # Formerly insp2
 
-insp1 = Inspector(1, "C1", "", States.WAITING)
-insp2 = Inspector(2, "C2", "C3", States.WAITING)
+    inspectors = [inspector1, inspector2]
+    workstations = [workS1, workS2, workS3]
+
+    return inspectors, workstations
 
 
-def simulator():
-    processT1 = 0
-    processT2 = 0
-    processT3 = 0
-    insp2TotalBTime = 0
-    for i in range(0, 1000):
-        if workS1.checkAssemble() and workS1.getState() == States.WAITING:
-            processT1 = w1Times.getRand()
-            p1 = workS1.assemble(processT1)
-            print(p1.name, p1.processedTime)
-            workS1.setState(States.ASSEMBLING)
+'''
+If inspector waiting, create new component then set working
+if inspector working, do nothing
+if inspector blocked, do nothing
+'''
+def checkInspectors(inspector, currentTime):
+    if inspector.state == States.WAITING:
+        inspector.inspect(currentTime)
+        inspector.setState(States.WORKING)
+        # print("Inspector " + str(inspector.inspectorNum) + " WAITING TO WORKING")
+        # print("Inspector " + str(inspector.inspectorNum) + " Next Time " + str(inspector.nextTime))
+    elif inspector.state == States.WORKING:
+        if currentTime >= inspector.getNextTime():
+            inspector.setState(States.BLOCKED)
+        # print("Inspector " + str(inspector.inspectorNum) + " BLOCKED")
+    # State change from blocked to waiting occurs during buffer check
+    # elif inspector.state == States.BLOCKED:
 
-        if workS2.checkAssemble() and workS2.getState() == States.WAITING:
-            processT2 = w2Times.getRand()
-            p2 = workS2.assemble(processT2)
-            print(p2.name, p2.processedTime)
-            workS2.setState(States.ASSEMBLING)
 
-        if workS3.checkAssemble() and workS3.getState() == States.WAITING:
-            processT3 = w3Times.getRand()
-            p3 = workS3.assemble(processT3)
-            print(p3.name, p3.processedTime)
-            workS3.setState(States.ASSEMBLING)
+'''
+Check if a buffer is available to add the inspector's component
+'''
+def checkBufferCapacity(component, workstations):
+    for i in workstations:
+        if i.checkBuffer(component.name) < 2:
+            return True
 
-        if insp1.state == States.WAITING:
-            inspectTime1 = c1Times.getRand()
-            c1 = insp1.inspect(inspectTime1, "C1")
-            buf1 = workS1.checkBuffer("C1")
-            buf2 = workS2.checkBuffer("C1")
-            buf3 = workS3.checkBuffer("C1")
-            if insp2.state == States.BLOCKED:
-                insp2.timeBlocked(inspectTime1)
 
-            if buf1 <= buf2 and buf1 <= buf3 and buf1 < 2:
-                workS1.addComponent(c1)
-                workS1.timeWaited(inspectTime1, "C1")
-                workS2.timeWaited(inspectTime1, "C1")
-                workS3.timeWaited(inspectTime1, "C1")
-            elif buf2 < buf1 and buf2 <= buf3 and buf2 < 2:
-                workS2.addComponent(c1)
-                workS2.timeWaited(inspectTime1, "C1")
-            elif buf3 < buf1 and buf3 < buf2 and buf3 < 2:
-                workS3.addComponent(c1)
-                workS3.timeWaited(inspectTime1, "C1")
+'''
+If Inspector has component available
+Requires buffer lengths to be checked
+'''
+def addToBuffer(inspector, workstations, currentTime, inspectorBlockedList):
+    # Check buffer capacity before accepting component
+    if inspector.state == States.BLOCKED:
+        if checkBufferCapacity(inspector.peakComponent(), workstations):
+            component = inspector.getComponent(currentTime)
+            # print("Component: " + component.name)
 
-        if insp2.state == States.WAITING:
-            randC = randrange(2)
-            if randC == 0:
-                inspectTime2 = c2Times.getRand()
-                c2 = insp2.inspect(inspectTime2, "C2")
-                if workS2.checkBuffer("C2") < 2 or workS2.checkBuffer("C2") is None:
-                    workS2.addComponent(c2)
-                    workS2.timeWaited(inspectTime2, "C2")
-                else:
-                    insp2.setState(States.BLOCKED)
-                    workS2.timeWaited(inspectTime2, "C2")
-                    insp2.blockC = c2
-            elif randC == 1:
-                inspectTime2 = c3Times.getRand()
-                c3 = insp2.inspect(inspectTime2, "C3")
-                if workS3.checkBuffer("C3") < 2 or workS3.checkBuffer("C3") is None:
-                    workS3.addComponent(c3)
-                    workS3.timeWaited(inspectTime2, "C3")
-                else:
-                    insp2.setState(States.BLOCKED)
-                    workS3.timeWaited(inspectTime2, "C3")
-                    insp2.blockC = c3
+            # C2 or C3 directed to appropriate buffer
+            if component.name == "C2" or component.name == "C3":
+                for i in workstations:
+                    if i.addComponent(component):
+                        # print("Inspector " + str(
+                        # inspector.inspectorNum) + " Component: " + component.name + " Added to Buffer " + str(
+                        # i.workSNumber))
+                        break
 
-        elif insp2.state == States.BLOCKED:
-            if insp2.blockC.name == "C2":
-                if workS2.checkBuffer("C2") < 2 or workS2.checkBuffer("C2") is None:
-                    insp2.setState(States.WAITING)
-                    workS2.addComponent(insp2.blockC)
-                    workS2.timeWaited(insp2.blockC.startT + insp2.blockTime, "C2")
-                    insp2TotalBTime += insp2.blockTime
-                    insp2.blockTime = 0
-            elif insp2.blockC.name == "C3":
-                if workS3.checkBuffer("C3") < 2 or workS3.checkBuffer("C3") is None:
-                    insp2.setState(States.WAITING)
-                    workS3.addComponent(insp2.blockC)
-                    workS3.timeWaited(insp2.blockC.startT + insp2.blockTime, "C3")
-                    insp2TotalBTime += insp2.blockTime
-                    insp2.blockTime = 0
+            # C1 optimization assuming three C1 buffers
+            elif component.name == "C1":
+                for i in range(2):
+                    addedComponent = False
+                    for j in workstations:
+                        if j.checkBuffer(component.name) == i:
+                            if j.addComponent(component):
+                                addedComponent = True
+                                # print("Inspector " + str(
+                                # inspector.inspectorNum) + " Component: " + component.name + " Added to Buffer " + str(
+                                # j.workSNumber))
+                                break
+                    if addedComponent:
+                        break
 
-        if inspectTime1 > processT1 and workS1.getState() == States.ASSEMBLING:
-            workS1.setState(States.WAITING)
-            processT1 = 0
-        else:
-            processT1 -= inspectTime1
+            inspector.setState(States.WAITING)
 
-        if inspectTime2 > processT2 and inspectTime1 > processT2 and workS2.getState() == States.ASSEMBLING:
-            workS2.setState(States.WAITING)
-            processT2 = 0
-        else:
-            if inspectTime2 > inspectTime1:
-                processT2 -= inspectTime2
-            else:
-                processT2 -= inspectTime1
+            if inspector.blockedTime > 0:
+                inspectorBlockedList.append([component.name, inspector.blockedTime])
 
-        if inspectTime2 > processT3 and inspectTime1 > processT3 and workS3.getState() == States.ASSEMBLING:
-            workS3.setState(States.WAITING)
-            processT3 = 0
-        else:
-            if inspectTime2 > inspectTime1:
-                processT3 -= inspectTime2
-            else:
-                processT3 -= inspectTime1
 
-simulator()
+'''
+Update workstation states
+if working, check for switch, return product, update product time
+If waiting, do nothing
+'''
+def checkWorkstation(workstation, currentTime, productList):
+    if workstation.state == States.WORKING:
+        if currentTime >= workstation.getNextTime():
+            product = workstation.getProduct()
+            # print("Workstation " + str(workstation.workSNumber) + " Created Product " + product.name)
+            product.calculateProductionTime(workstation.getNextTime())
+            productList.append([product.name, product.totalTime])
+            workstation.setState(States.WAITING)
+
+    # if workstation.state == States.WAITING:
+
+
+'''
+If workstation waiting, assemble and produce product
+'''
+def assembleWorkstations(workstations, currentTime):
+    for i in workstations:
+        if i.getState() == States.WAITING and i.checkAssemble():
+            i.assemble(currentTime)
+            i.setState(States.WORKING)
+            # print("Workstation " + str(i.workSNumber) + " Assembling")
+            # print("Workstation " + str(i.workSNumber) + " Next Time " + str(i.nextTime))
+
+
+'''
+outputs the products onto a excel file 
+where each sheet is a separate simulation
+'''
+def outputInspector(rep, dataframe):
+    sheetName = 'Simulation_' + str(rep)
+    if rep > 1:
+        with pd.ExcelWriter('BlockedInspectors.xlsx', mode='a') as writer:
+            dataframe.to_excel(writer, sheet_name=sheetName)
+    else:
+        with pd.ExcelWriter('BlockedInspectors.xlsx') as writer:
+            dataframe.to_excel(writer, sheet_name=sheetName)
+
+
+'''
+outputs the products onto a excel file 
+where each sheet is a separate simulation
+'''
+def outputProduct(rep, dataframe):
+    sheetName = 'Simulation_' + str(rep)
+    if rep > 1:
+        with pd.ExcelWriter('productOutputs.xlsx', mode='a') as writer:
+            dataframe.to_excel(writer, sheet_name=sheetName)
+    else:
+        with pd.ExcelWriter('productOutputs.xlsx') as writer:
+            dataframe.to_excel(writer, sheet_name=sheetName)
+
+
+'''
+Calculates product throughput per/hour 
+'''
+def productThroughput(rep, dataframe):
+    return rep, len(dataframe.index) / (RUN_TIME / 60), RUN_TIME
+
+
+'''
+Calculates the Total blocked time for each replica
+'''
+def totalBlockedTime(rep, dataframe):
+    return rep, dataframe['Blocked Time'].sum(), RUN_TIME
+
+
+'''
+Smallest value is current time
+Second smallest is next time
+'''
+def getNextTime(inspectors, workstations, currentTime):
+    nextTime = RUN_TIME
+    lastTime = RUN_TIME
+    for i in inspectors:
+        if i.getNextTime() < nextTime and i.getNextTime() > currentTime:
+            nextTime = i.getNextTime()
+
+    for j in workstations:
+        if j.getNextTime() < nextTime and j.getNextTime() > currentTime:
+            nextTime = j.getNextTime()
+
+    if nextTime < currentTime:
+        print("Error: nextTime < currentTime")
+
+    return nextTime
+
+
+def main(replica):
+    inspectors, workstations = initClasses()
+
+    productList = []
+    inspectorBlockedList = []
+    currentTime = 0
+
+    while currentTime < RUN_TIME:
+        # print("Current Time: " + str(currentTime))
+
+        # This loop accounts for system changes at the same time
+        for j in range(3):
+            # Step 1: Inspectors create component
+            for i in inspectors:
+                checkInspectors(i, currentTime)
+
+            # Step 2: Add component to buffer
+            for i in inspectors:
+                addToBuffer(i, workstations, currentTime, inspectorBlockedList)
+
+            # Step 3: Recheck inspectors
+            for i in inspectors:
+                checkInspectors(i, currentTime)
+
+            # Step 3: Update workstation states
+            for i in workstations:
+                checkWorkstation(i, currentTime, productList)
+
+            # Step 4: Assemble Products
+            assembleWorkstations(workstations, currentTime)
+
+        # Step 5: Increment time
+        currentTime = getNextTime(inspectors, workstations, currentTime)
+
+    products = pd.DataFrame(productList, columns=['Product', 'Production Time'])
+    blockedInspector = pd.DataFrame(inspectorBlockedList, columns=['Inspector', 'Blocked Time'])
+    outputInspector(replica, blockedInspector)
+    outputProduct(replica, products)
+
+    blockTimes.loc[replica] = totalBlockedTime(replica, blockedInspector)
+    throughput.loc[replica] = productThroughput(replica, products)
+    if replica == TOTAL_REPS:
+        blockTimes.loc[replica + 1] = 'Average:', blockTimes['Total Blocked Time'].mean(), RUN_TIME
+        throughput.loc[replica + 1] = 'Average:', throughput['Throughput(product/hour)'].mean(), RUN_TIME
+
+        blockTimes.loc[replica + 2] = 'Std:', blockTimes['Total Blocked Time'].std(), RUN_TIME
+        throughput.loc[replica + 2] = 'Std:', throughput['Throughput(product/hour)'].std(), RUN_TIME
+
+        blockTimes.loc[replica + 3] = 'CI:', blockTimes.iloc[replica]['Total Blocked Time']-(2.23*(blockTimes.iloc[replica + 1]['Total Blocked Time'])/math.sqrt(replica)), \
+                                      blockTimes.iloc[replica]['Total Blocked Time'] + (2.23 * (blockTimes.iloc[replica + 1]['Total Blocked Time']) / math.sqrt(replica))
+
+        throughput.loc[replica + 3] = 'CI:', throughput.iloc[replica]['Throughput(product/hour)']-(2.23*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica)), \
+                                      throughput.iloc[replica]['Throughput(product/hour)']+(2.23*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica))
+
+        blockTimes.loc[replica + 4] = 'PI:', blockTimes.iloc[replica]['Total Blocked Time']-(2.23*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica)))), \
+                                      blockTimes.iloc[replica]['Total Blocked Time']+(2.23*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica))))
+
+        throughput.loc[replica + 4] = 'PI:', throughput.iloc[replica]['Throughput(product/hour)']-(2.23*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica)))), \
+                                      throughput.iloc[replica]['Throughput(product/hour)']+(2.23*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica))))
+
+    blockTimes.to_excel('Simulation_Block_Times.xlsx', index=False)
+    throughput.to_excel('Simulation_Throughputs.xlsx', index=False)
+
+
+if __name__ == "__main__":
+    for r in range(1, TOTAL_REPS + 1):
+        main(r)
