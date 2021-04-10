@@ -3,19 +3,19 @@ from Inspector import Inspector
 from Workstation import Workstation
 import pandas as pd
 import math
-from styleframe import StyleFrame
+# from styleframe import StyleFrame
 
 '''
 Change run time to change simulation length
 '''
-RUN_TIME = 1000
+RUN_TIME = 10000
 
 # dataframes for the calculated values of each replica
 blockTimes = pd.DataFrame(columns=['Replica', 'Total Blocked Time', 'RunTime'])
 throughput = pd.DataFrame(columns=['Replica', 'Throughput(product/hour)', 'RunTime'])
 
 # Number of sim replications
-TOTAL_REPS = 10
+TOTAL_REPS = 1
 
 
 class States(Enum):
@@ -68,13 +68,118 @@ def checkBufferCapacity(component, workstations):
     for i in workstations:
         if i.checkBuffer(component.name) < 2:
             return True
+        
+# '''
+# If Inspector has component available
+# Requires buffer lengths to be checked
+# '''
+# def addToBuffer(inspector, workstations, currentTime, inspectorBlockedList):
+#     # Check buffer capacity before accepting component
+#     if inspector.state == States.BLOCKED:
+#         if checkBufferCapacity(inspector.peakComponent(), workstations):
+#             component = inspector.getComponent(currentTime)
+#             # print("Component: " + component.name)
 
+#             # C2 or C3 directed to appropriate buffer
+#             if component.name == "C2" or component.name == "C3":
+#                 for i in workstations:
+#                     if i.addComponent(component):
+#                         # print("Inspector " + str(
+#                         # inspector.inspectorNum) + " Component: " + component.name + " Added to Buffer " + str(
+#                         # i.workSNumber))
+#                         break
+
+#             # C1 optimization assuming three C1 buffers
+#             elif component.name == "C1":
+#                 for i in range(2):
+#                     addedComponent = False
+#                     for j in workstations:
+#                         if j.checkBuffer(component.name) == i:
+#                             if j.addComponent(component):
+#                                 addedComponent = True
+#                                 # print("Inspector " + str(
+#                                 # inspector.inspectorNum) + " Component: " + component.name + " Added to Buffer " + str(
+#                                 # j.workSNumber))
+#                                 break
+#                     if addedComponent:
+#                         break
+
+#             inspector.setState(States.WAITING)
+
+#             if inspector.blockedTime > 0:
+#                 inspectorBlockedList.append([component.name, inspector.blockedTime])
+
+
+'''
+!!!Optimization only occurs for C1 component
+
+Priority goes to Workstation which can unblock Inspector 2
+
+1. Check if Inspector 2 is blocked
+    1. Check component type which is blocking Inspector 2
+    2. Check if Workstation C1 buffer empty
+        Ideally Workstation not working
+    
+Else priority given to waiting workstation with other available component or empty Workstation 1 buffer
+
+Else give priority to workstation with other available component or empty Workstation 1 buffer
+
+Else give priority to workstation with lowest number of C1
+
+Note: Inspector avg time higher than workstations
+    Probability dictates that unblocking Inspectors has higher priority than unblocking Workstations
+
+Output:
+    True if component added
+'''
+def bufferOptimization(component, workstations, inspectors):
+    #component by default is C1
+    
+    #Inspector blocked logic sequence
+    if inspectors[1].state == States.BLOCKED:
+        blockedComponentType = inspectors[1].peakComponent().name
+        if blockedComponentType == "C2":
+            if workstations[1].checkBuffer(component) == 0:
+                workstations[1].addComponent(component)
+                return True
+        else: #Assume blockedComponentType = "C3"
+            if workstations[2].checkBuffer(component) == 0:
+                workstations[2].addComponent(component)
+                return True
+    
+    #Workstation waiting sequence
+    for i in workstations:
+        if i.state == States.WAITING:
+            if i.checkBuffer(component) == 0:
+                if i.checkWaitingC1():
+                    i.addComponent(component)
+                    return True
+    
+    #Workstation working but not ready to produce once finished
+    for i in workstations:
+        if i.checkBuffer(component) == 0:
+            if i.checkWaitingC1():
+                i.addComponent(component)
+    
+    #Give C1 to lowest capacity C1 buffer with WS1 priority
+    for i in range(2):
+        for j in workstations:
+            if j.checkBuffer(component.name) == i:
+                if j.addComponent(component):
+                    return True
+                    # print("Inspector " + str(
+                    # inspector.inspectorNum) + " Component: " + component.name + " Added to Buffer " + str(
+                    # j.workSNumber))
+                    
+                    
 
 '''
 If Inspector has component available
 Requires buffer lengths to be checked
+
+Improvement: priority of buffer 2 increases to max if inspector 2 = blocked
 '''
-def addToBuffer(inspector, workstations, currentTime, inspectorBlockedList):
+def addToBuffer(inspector, workstations, inspectors, currentTime, inspectorBlockedList):
     # Check buffer capacity before accepting component
     if inspector.state == States.BLOCKED:
         if checkBufferCapacity(inspector.peakComponent(), workstations):
@@ -90,20 +195,11 @@ def addToBuffer(inspector, workstations, currentTime, inspectorBlockedList):
                         # i.workSNumber))
                         break
 
-            # C1 optimization assuming three C1 buffers
+            # C1 optimization, if Inspector 2== blocked, raise priority
             elif component.name == "C1":
-                for i in range(2):
-                    addedComponent = False
-                    for j in workstations:
-                        if j.checkBuffer(component.name) == i:
-                            if j.addComponent(component):
-                                addedComponent = True
-                                # print("Inspector " + str(
-                                # inspector.inspectorNum) + " Component: " + component.name + " Added to Buffer " + str(
-                                # j.workSNumber))
-                                break
-                    if addedComponent:
-                        break
+                bufferOptimization(component, workstations, inspectors)
+                # if bufferOptimization(component, workstations, inspectors) == False:
+                #     print("C1 failed to be added to buffer")
 
             inspector.setState(States.WAITING)
 
@@ -221,7 +317,7 @@ def main(replica):
 
             # Step 2: Add component to buffer
             for i in inspectors:
-                addToBuffer(i, workstations, currentTime, inspectorBlockedList)
+                addToBuffer(i, workstations, inspectors, currentTime, inspectorBlockedList)
 
             # Step 3: Recheck inspectors
             for i in inspectors:
@@ -239,36 +335,38 @@ def main(replica):
 
     products = pd.DataFrame(productList, columns=['Product', 'Production Time'])
     blockedInspector = pd.DataFrame(inspectorBlockedList, columns=['Inspector', 'Blocked Time'])
-    outputInspector(replica, blockedInspector)
-    outputProduct(replica, products)
+    print(products)
+    print(blockedInspector)
+    # outputInspector(replica, blockedInspector)
+    # outputProduct(replica, products)
 
-    blockTimes.loc[replica] = totalBlockedTime(replica, blockedInspector)
-    throughput.loc[replica] = productThroughput(replica, products)
-    if replica == TOTAL_REPS:
-        blockTimes.loc[replica + 1] = 'Average:', blockTimes['Total Blocked Time'].mean(), RUN_TIME
-        throughput.loc[replica + 1] = 'Average:', throughput['Throughput(product/hour)'].mean(), RUN_TIME
+    # blockTimes.loc[replica] = totalBlockedTime(replica, blockedInspector)
+    # throughput.loc[replica] = productThroughput(replica, products)
+    # if replica == TOTAL_REPS:
+    #     blockTimes.loc[replica + 1] = 'Average:', blockTimes['Total Blocked Time'].mean(), RUN_TIME
+    #     throughput.loc[replica + 1] = 'Average:', throughput['Throughput(product/hour)'].mean(), RUN_TIME
 
-        blockTimes.loc[replica + 2] = 'Std:', blockTimes['Total Blocked Time'].std(), RUN_TIME
-        throughput.loc[replica + 2] = 'Std:', throughput['Throughput(product/hour)'].std(), RUN_TIME
+    #     blockTimes.loc[replica + 2] = 'Std:', blockTimes['Total Blocked Time'].std(), RUN_TIME
+    #     throughput.loc[replica + 2] = 'Std:', throughput['Throughput(product/hour)'].std(), RUN_TIME
 
-        blockTimes.loc[replica + 3] = 'CI:+-' + "{:.3f}".format(2.23*(blockTimes.iloc[replica + 1]['Total Blocked Time'])/math.sqrt(replica)), \
-                                      blockTimes.iloc[replica]['Total Blocked Time']-(2.23*(blockTimes.iloc[replica + 1]['Total Blocked Time'])/math.sqrt(replica)), \
-                                      blockTimes.iloc[replica]['Total Blocked Time'] + (2.23 * (blockTimes.iloc[replica + 1]['Total Blocked Time']) / math.sqrt(replica))
+    #     blockTimes.loc[replica + 3] = 'CI:+-' + "{:.3f}".format(2.23*(blockTimes.iloc[replica + 1]['Total Blocked Time'])/math.sqrt(replica)), \
+    #                                   blockTimes.iloc[replica]['Total Blocked Time']-(2.23*(blockTimes.iloc[replica + 1]['Total Blocked Time'])/math.sqrt(replica)), \
+    #                                   blockTimes.iloc[replica]['Total Blocked Time'] + (2.23 * (blockTimes.iloc[replica + 1]['Total Blocked Time']) / math.sqrt(replica))
 
-        throughput.loc[replica + 3] = 'CI:+-' + "{:.3f}".format(2.23*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica)), \
-                                      throughput.iloc[replica]['Throughput(product/hour)']-(2.23*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica)), \
-                                      throughput.iloc[replica]['Throughput(product/hour)']+(2.23*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica))
+    #     throughput.loc[replica + 3] = 'CI:+-' + "{:.3f}".format(2.23*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica)), \
+    #                                   throughput.iloc[replica]['Throughput(product/hour)']-(2.23*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica)), \
+    #                                   throughput.iloc[replica]['Throughput(product/hour)']+(2.23*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica))
 
-        blockTimes.loc[replica + 4] = 'PI:+-' + "{:.3f}".format(2.23*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica)))), \
-                                      blockTimes.iloc[replica]['Total Blocked Time']-(2.23*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica)))), \
-                                      blockTimes.iloc[replica]['Total Blocked Time']+(2.23*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica))))
+    #     blockTimes.loc[replica + 4] = 'PI:+-' + "{:.3f}".format(2.23*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica)))), \
+    #                                   blockTimes.iloc[replica]['Total Blocked Time']-(2.23*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica)))), \
+    #                                   blockTimes.iloc[replica]['Total Blocked Time']+(2.23*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica))))
 
-        throughput.loc[replica + 4] = 'PI:+-' + "{:.3f}".format(2.23*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica)))), \
-                                      throughput.iloc[replica]['Throughput(product/hour)']-(2.23*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica)))), \
-                                      throughput.iloc[replica]['Throughput(product/hour)']+(2.23*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica))))
+    #     throughput.loc[replica + 4] = 'PI:+-' + "{:.3f}".format(2.23*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica)))), \
+    #                                   throughput.iloc[replica]['Throughput(product/hour)']-(2.23*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica)))), \
+    #                                   throughput.iloc[replica]['Throughput(product/hour)']+(2.23*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica))))
 
-    blockTimes.to_excel('Simulation_Block_Times.xlsx', index=False)
-    throughput.to_excel('Simulation_Throughputs.xlsx', index=False)
+    # blockTimes.to_excel('Simulation_Block_Times.xlsx', index=False)
+    # throughput.to_excel('Simulation_Throughputs.xlsx', index=False)
 
 
 if __name__ == "__main__":
