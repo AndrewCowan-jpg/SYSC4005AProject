@@ -18,8 +18,8 @@ class Inspector():
         self.nextTime = 0       #Contains the time for switching from WAITING to WORKING
         
         self.componentDict = {
-            self.componentT1 : RandomNum(self.componentT1),
-            self.componentT2 : RandomNum(self.componentT2)     #inspector1 uses null for T2
+            self.componentT1: RandomNum(self.componentT1),
+            self.componentT2: RandomNum(self.componentT2)     #inspector1 uses null for T2
         }
 
     '''

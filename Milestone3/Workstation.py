@@ -99,28 +99,4 @@ class Workstation():
     def getState(self):
         return self.state
 
-    '''
-    Used for buffer optimization, check if waiting for C1 component
-    
-    Assumes:
-        C1 buffer is empty
-    
-    Output:
-        True if waiting for C1
-    '''
-    def checkWaitingC1(self):
-        #WS1 check if buffer 1 empty
-        if self.workSNumber == 1:
-            return True
-        
-        #WS2/3 check if buffer 1 empty and buffer 2 not empty
-        elif self.workSNumber == 2:
-            if len(self.buffer2) > 0:
-                return True
-        
-        elif self.workSNumber == 2:
-            if len(self.buffer2) > 0:
-                return True
-        
-        return False
-            
+
