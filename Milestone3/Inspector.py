@@ -1,7 +1,8 @@
 from Component import Component
 from Random import RandomNum
 from random import *
-   
+
+order = 0
         
 class Inspector():
     def __init__(self, num, componentT1, componentT2, state):
@@ -28,21 +29,36 @@ class Inspector():
     Updates the inspection time
     '''
     def inspect(self, currentTime):
+
         self.currentTime = currentTime     #possible removal, may not be required
         if self.componentT1 == "C1":
             self.inspectionTime = self.componentDict[self.componentT1].getRand()
             self.component = Component(self.componentT1, self.currentTime)
         else:
-            randomNumber = randrange(2) #Creates number between 0 and 1
-            if randomNumber == 1:
-                self.inspectionTime = self.componentDict[self.componentT1].getRand()
-                self.component = Component(self.componentT1, self.currentTime)
-            else:
-                self.inspectionTime = self.componentDict[self.componentT2].getRand()
-                self.component = Component(self.componentT2, self.currentTime)
+            self.alternateSelection()
         
         self.getNextTime()
-    
+
+    def originalSelection(self):
+        randomNumber = randrange(2)  # Creates number between 0 and 1
+        if randomNumber == 1:
+            self.inspectionTime = self.componentDict[self.componentT1].getRand()
+            self.component = Component(self.componentT1, self.currentTime)
+        else:
+            self.inspectionTime = self.componentDict[self.componentT2].getRand()
+            self.component = Component(self.componentT2, self.currentTime)
+
+    def alternateSelection(self):
+        global order
+        if order == 0:
+            self.inspectionTime = self.componentDict[self.componentT1].getRand()
+            self.component = Component(self.componentT1, self.currentTime)
+            order += 1
+        else:
+            self.inspectionTime = self.componentDict[self.componentT2].getRand()
+            self.component = Component(self.componentT2, self.currentTime)
+            order = 0
+
     def getNextTime(self):
         self.nextTime = self.currentTime + self.inspectionTime
         # print("Inspector Next Time = " + str(self.nextTime))

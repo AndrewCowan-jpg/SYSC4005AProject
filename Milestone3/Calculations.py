@@ -79,12 +79,12 @@ class Calculations():
     def blockedCalc(self, dataframe, initial):
         if initial:
             dataframe.loc[self.replicas + 1] = 'Average:', dataframe[
-                'Total Blocked Time'].mean(), self.RUN_TIME - self.TO
+                'Total Blocked Time'].mean(), self.RUN_TIME
             dataframe.loc[self.replicas + 2] = 'Std:', dataframe[
-                'Total Blocked Time'].std(), self.RUN_TIME - self.TO
+                'Total Blocked Time'].std(), self.RUN_TIME
         else:
-            dataframe.loc[self.replicas + 1] = 'Average:', dataframe['Total Blocked Time'].mean(), self.RUN_TIME
-            dataframe.loc[self.replicas + 2] = 'Std:', dataframe['Total Blocked Time'].std(), self.RUN_TIME
+            dataframe.loc[self.replicas + 1] = 'Average:', dataframe['Total Blocked Time'].mean(), self.RUN_TIME - self.TO
+            dataframe.loc[self.replicas + 2] = 'Std:', dataframe['Total Blocked Time'].std(), self.RUN_TIME - self.TO
 
         dataframe.loc[self.replicas + 3] = 'CI:+-' + "{:.3f}".format(
             2.26 * (dataframe.iloc[self.replicas + 1]['Total Blocked Time']) / math.sqrt(self.replicas)), \
@@ -117,12 +117,12 @@ class Calculations():
     def throughputCalc(self, dataframe, initial):
         if initial:
             dataframe.loc[self.replicas + 1] = 'Average:', dataframe[
-                'Throughput(product/hour)'].mean(), self.RUN_TIME - self.TO
+                'Throughput(product/hour)'].mean(), self.RUN_TIME
             dataframe.loc[self.replicas + 2] = 'Std:', dataframe[
-                'Throughput(product/hour)'].std(), self.RUN_TIME - self.TO
+                'Throughput(product/hour)'].std(), self.RUN_TIME
         else:
-            dataframe.loc[self.replicas + 1] = 'Average:', dataframe['Throughput(product/hour)'].mean(), self.RUN_TIME
-            dataframe.loc[self.replicas + 2] = 'Std:', dataframe['Throughput(product/hour)'].std(), self.RUN_TIME
+            dataframe.loc[self.replicas + 1] = 'Average:', dataframe['Throughput(product/hour)'].mean(), self.RUN_TIME - self.TO
+            dataframe.loc[self.replicas + 2] = 'Std:', dataframe['Throughput(product/hour)'].std(), self.RUN_TIME - self.TO
 
         dataframe.loc[self.replicas + 3] = 'CI:+-' + "{:.5f}".format(
             2.26 * (dataframe.iloc[self.replicas + 1]['Throughput(product/hour)']) / math.sqrt(self.replicas)), \

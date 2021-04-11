@@ -90,7 +90,9 @@ def addToBuffer(inspector, workstations, currentTime, inspectorBlockedList, init
             elif component.name == "C1":
                 # Change this to Alternate1 or Alternate2 for different
                 # Inspector 1 Scheduling Options
-                originalScheduling(workstations, component)
+                # originalScheduling(workstations, component)
+                schedulingAlternative1(workstations, component)
+                # schedulingAlternative2(workstations, component)
 
             inspector.setState(States.WAITING)
             if inspector.blockedTime > 0:
