@@ -88,6 +88,8 @@ def addToBuffer(inspector, workstations, currentTime, inspectorBlockedList, init
 
             # C1 optimization assuming three C1 buffers
             elif component.name == "C1":
+                # Change this to Alternate1 or Alternate2 for different
+                # Inspector 1 Scheduling Options
                 originalScheduling(workstations, component)
 
             inspector.setState(States.WAITING)
