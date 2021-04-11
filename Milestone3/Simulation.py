@@ -1,9 +1,10 @@
+import math
 from enum import Enum
+
+import pandas as pd
+from Calculations import Calculations
 from Inspector import Inspector
 from Workstation import Workstation
-import pandas as pd
-import math
-
 
 '''
 Change run time to change simulation length
@@ -35,6 +36,7 @@ def initClasses():
     workS1 = Workstation(1, "C1", "", States.WAITING)
     workS2 = Workstation(2, "C1", "C2", States.WAITING)
     workS3 = Workstation(3, "C1", "C3", States.WAITING)
+    calculations = Calculations(TOTAL_REPS, RUN_TIME, TO)
 
     inspector1 = Inspector(1, "C1", "", States.WAITING)  # Formerlly insp1
     inspector2 = Inspector(2, "C2", "C3", States.WAITING)  # Formerly insp2
@@ -42,7 +44,7 @@ def initClasses():
     inspectors = [inspector1, inspector2]
     workstations = [workS1, workS2, workS3]
 
-    return inspectors, workstations
+    return inspectors, workstations, calculations
 
 
 '''
@@ -132,7 +134,6 @@ def checkWorkstation(workstation, currentTime, productList, initialProduct):
             initialProduct.append([product.name, product.totalTime, currentTime])
             workstation.setState(States.WAITING)
 
-    # if workstation.state == States.WAITING:
 
 
 '''
@@ -148,78 +149,11 @@ def assembleWorkstations(workstations, currentTime):
 
 
 '''
-outputs the products onto a excel file 
-where each sheet is a separate simulation
-'''
-def outputInspector(rep, dataframe, initial):
-    sheetName = 'Simulation_' + str(rep)
-    if initial:
-        if rep > 1:
-            with pd.ExcelWriter('InitialBlockedInspectors.xlsx', mode='a') as writer:
-                dataframe.to_excel(writer, sheet_name=sheetName)
-        else:
-            with pd.ExcelWriter('InitialBlockedInspectors.xlsx') as writer:
-                dataframe.to_excel(writer, sheet_name=sheetName)
-    else:
-        if rep > 1:
-            with pd.ExcelWriter('BlockedInspectors.xlsx', mode='a') as writer:
-                dataframe.to_excel(writer, sheet_name=sheetName)
-        else:
-            with pd.ExcelWriter('BlockedInspectors.xlsx') as writer:
-                dataframe.to_excel(writer, sheet_name=sheetName)
-
-
-
-'''
-outputs the products onto a excel file 
-where each sheet is a separate simulation
-'''
-def outputProduct(rep, dataframe, initial):
-    sheetName = 'Simulation_' + str(rep)
-    if initial:
-        if rep > 1:
-            with pd.ExcelWriter('initialProductOutputs.xlsx', mode='a') as writer:
-                dataframe.to_excel(writer, sheet_name=sheetName)
-        else:
-            with pd.ExcelWriter('initialProductOutputs.xlsx') as writer:
-                dataframe.to_excel(writer, sheet_name=sheetName)
-    else:
-        if rep > 1:
-            with pd.ExcelWriter('productOutputs.xlsx', mode='a') as writer:
-                dataframe.to_excel(writer, sheet_name=sheetName)
-        else:
-            with pd.ExcelWriter('productOutputs.xlsx') as writer:
-                dataframe.to_excel(writer, sheet_name=sheetName)
-
-
-
-'''
-Calculates product throughput per/hour 
-'''
-def productThroughput(rep, dataframe, initial):
-    if initial:
-        return rep, len(dataframe.index) / (RUN_TIME / 60), RUN_TIME
-    else:
-        return rep, len(dataframe.index) / ((RUN_TIME - TO) / 60), RUN_TIME - TO
-
-
-'''
-Calculates the Total blocked time for each replica
-'''
-def totalBlockedTime(rep, dataframe, initial):
-    if initial:
-        return rep, dataframe['Blocked Time'].sum(), RUN_TIME
-    else:
-        return rep, dataframe['Blocked Time'].sum(), RUN_TIME - TO
-
-
-'''
 Smallest value is current time
 Second smallest is next time
 '''
 def getNextTime(inspectors, workstations, currentTime):
     nextTime = RUN_TIME
-    lastTime = RUN_TIME
     for i in inspectors:
         if i.getNextTime() < nextTime and i.getNextTime() > currentTime:
             nextTime = i.getNextTime()
@@ -235,8 +169,7 @@ def getNextTime(inspectors, workstations, currentTime):
 
 
 def main(replica):
-    inspectors, workstations = initClasses()
-
+    inspectors, workstations, calculations = initClasses()
     productList = []
     initialProduct = []
     inspectorBlockedList = []
@@ -245,7 +178,6 @@ def main(replica):
 
     while currentTime < RUN_TIME:
         # print("Current Time: " + str(currentTime))
-
         # This loop accounts for system changes at the same time
         for j in range(3):
             # Step 1: Inspectors create component
@@ -272,86 +204,22 @@ def main(replica):
 
     products = pd.DataFrame(productList, columns=['Product', 'Production Time', 'Simulation Time'])
     blockedInspector = pd.DataFrame(inspectorBlockedList, columns=['Inspector', 'Blocked Time', 'Simulation Time'])
-
-    iProducts = pd.DataFrame(initialProduct, columns=['Product', 'Production Time'])
-    iBlockedInspector = pd.DataFrame(initialInspectorB, columns=['Inspector', 'Blocked Time'])
-
-    outputInspector(replica, blockedInspector, False)
-    outputProduct(replica, products, False)
-    outputInspector(replica, iBlockedInspector, True)
-    outputProduct(replica, iProducts, True)
-
-    initialBT.loc[replica] = totalBlockedTime(replica, iBlockedInspector, True)
-    initialTP.loc[replica] = productThroughput(replica, iProducts, True)
-    blockTimes.loc[replica] = totalBlockedTime(replica, blockedInspector, False)
-    throughput.loc[replica] = productThroughput(replica, products, False)
+    iProducts = pd.DataFrame(initialProduct, columns=['Product', 'Production Time', 'Simulation Time'])
+    iBlockedInspector = pd.DataFrame(initialInspectorB, columns=['Inspector', 'Blocked Time', 'Simulation Time'])
+    calculations.outputInspector(replica, blockedInspector, False)
+    calculations.outputProduct(replica, products, False)
+    calculations.outputInspector(replica, iBlockedInspector, True)
+    calculations.outputProduct(replica, iProducts, True)
+    initialBT.loc[replica] = calculations.totalBlockedTime(replica, iBlockedInspector, True)
+    initialTP.loc[replica] = calculations.productThroughput(replica, iProducts, True)
+    blockTimes.loc[replica] = calculations.totalBlockedTime(replica, blockedInspector, False)
+    throughput.loc[replica] = calculations.productThroughput(replica, products, False)
 
     if replica == TOTAL_REPS:
-        initialBT.loc[replica + 1] = 'Average:', initialBT['Total Blocked Time'].mean(), RUN_TIME
-        initialTP.loc[replica + 1] = 'Average:',initialTP['Throughput(product/hour)'].mean(), RUN_TIME
-
-        initialBT.loc[replica + 2] = 'Std:', initialBT['Total Blocked Time'].std(), RUN_TIME
-        initialTP.loc[replica + 2] = 'Std:', initialTP['Throughput(product/hour)'].std(), RUN_TIME
-
-        initialBT.loc[replica + 3] = 'CI:+-' + "{:.3f}".format(
-            2.26 * (initialBT.iloc[replica + 1]['Total Blocked Time']) / math.sqrt(replica)), \
-                                      initialBT.iloc[replica]['Total Blocked Time'] - (2.26 * (
-                                      initialBT.iloc[replica + 1]['Total Blocked Time']) / math.sqrt(replica)), \
-                                      initialBT.iloc[replica]['Total Blocked Time'] + (2.26 * (
-                                      initialBT.iloc[replica + 1]['Total Blocked Time']) / math.sqrt(replica))
-
-        initialTP.loc[replica + 3] = 'CI:+-' + "{:.5f}".format(
-            2.26 * (initialTP.iloc[replica + 1]['Throughput(product/hour)']) / math.sqrt(replica)), \
-                                      initialTP.iloc[replica]['Throughput(product/hour)'] - (2.26 * (
-                                      initialTP.iloc[replica + 1]['Throughput(product/hour)']) / math.sqrt(replica)), \
-                                      initialTP.iloc[replica]['Throughput(product/hour)'] + (2.26 * (
-                                      initialTP.iloc[replica + 1]['Throughput(product/hour)']) / math.sqrt(replica))
-
-        initialBT.loc[replica + 4] = 'PI:+-' + "{:.3f}".format(
-            2.26 * initialBT.iloc[replica + 1]['Total Blocked Time'] * math.sqrt(1 + (1 / math.sqrt(replica)))), \
-                                      initialBT.iloc[replica]['Total Blocked Time'] - (
-                                                  2.26 * initialBT.iloc[replica + 1]['Total Blocked Time'] * math.sqrt(
-                                              1 + (1 / math.sqrt(replica)))), \
-                                      initialBT.iloc[replica]['Total Blocked Time'] + (
-                                                  2.26 * initialBT.iloc[replica + 1]['Total Blocked Time'] * math.sqrt(
-                                              1 + (1 / math.sqrt(replica))))
-
-        initialTP.loc[replica + 4] = 'PI:+-' + "{:.5f}".format(
-            2.26 * initialTP.iloc[replica + 1]['Throughput(product/hour)'] * math.sqrt(1 + (1 / math.sqrt(replica)))), \
-                                      initialTP.iloc[replica]['Throughput(product/hour)'] - (
-                                                  2.26 * initialTP.iloc[replica + 1][
-                                              'Throughput(product/hour)'] * math.sqrt(1 + (1 / math.sqrt(replica)))), \
-                                      initialTP.iloc[replica]['Throughput(product/hour)'] + (
-                                                  2.26 * initialTP.iloc[replica + 1][
-                                              'Throughput(product/hour)'] * math.sqrt(1 + (1 / math.sqrt(replica))))
-
-
-        blockTimes.loc[replica + 1] = 'Average:', blockTimes['Total Blocked Time'].mean(), RUN_TIME - TO
-        throughput.loc[replica + 1] = 'Average:', throughput['Throughput(product/hour)'].mean(), RUN_TIME - TO
-
-        blockTimes.loc[replica + 2] = 'Std:', blockTimes['Total Blocked Time'].std(), RUN_TIME - TO
-        throughput.loc[replica + 2] = 'Std:', throughput['Throughput(product/hour)'].std(), RUN_TIME - TO
-
-        blockTimes.loc[replica + 3] = 'CI:+-' + "{:.3f}".format(2.26*(blockTimes.iloc[replica + 1]['Total Blocked Time'])/math.sqrt(replica)), \
-                                      blockTimes.iloc[replica]['Total Blocked Time']-(2.26*(blockTimes.iloc[replica + 1]['Total Blocked Time'])/math.sqrt(replica)), \
-                                      blockTimes.iloc[replica]['Total Blocked Time'] + (2.26 * (blockTimes.iloc[replica + 1]['Total Blocked Time']) / math.sqrt(replica))
-
-        throughput.loc[replica + 3] = 'CI:+-' + "{:.5f}".format(2.26*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica)), \
-                                      throughput.iloc[replica]['Throughput(product/hour)']-(2.26*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica)), \
-                                      throughput.iloc[replica]['Throughput(product/hour)']+(2.26*(throughput.iloc[replica + 1]['Throughput(product/hour)'])/math.sqrt(replica))
-
-        blockTimes.loc[replica + 4] = 'PI:+-' + "{:.3f}".format(2.26*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica)))), \
-                                      blockTimes.iloc[replica]['Total Blocked Time']-(2.26*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica)))), \
-                                      blockTimes.iloc[replica]['Total Blocked Time']+(2.26*blockTimes.iloc[replica + 1]['Total Blocked Time']*math.sqrt(1+(1/math.sqrt(replica))))
-
-        throughput.loc[replica + 4] = 'PI:+-' + "{:.5f}".format(2.26*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica)))), \
-                                      throughput.iloc[replica]['Throughput(product/hour)']-(2.26*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica)))), \
-                                      throughput.iloc[replica]['Throughput(product/hour)']+(2.26*throughput.iloc[replica + 1]['Throughput(product/hour)']*math.sqrt(1+(1/math.sqrt(replica))))
-
-    blockTimes.to_excel('Simulation_Block_Times.xlsx', index=False)
-    throughput.to_excel('Simulation_Throughputs.xlsx', index=False)
-    initialBT.to_excel('Initial_Simulation_Block_Times.xlsx', index=True)
-    initialTP.to_excel('Initial_Simulation_Throughputs.xlsx', index=True)
+        calculations.throughputCalc(initialTP, True)
+        calculations.blockedCalc(initialBT, True)
+        calculations.throughputCalc(throughput, False)
+        calculations.blockedCalc(blockTimes, False)
 
 if __name__ == "__main__":
     for r in range(1, TOTAL_REPS + 1):
