@@ -85,7 +85,6 @@ class Workstation():
     '''
     def getNextTime(self):
         self.nextTime = self.currentTime + self.inspectionTime
-        # print("Workstation Next Time = " + str(self.nextTime))
         return self.nextTime
     
     def getProduct(self):
