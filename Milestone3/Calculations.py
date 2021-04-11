@@ -21,17 +21,17 @@ class Calculations():
         sheetName = 'Simulation_' + str(replica)
         if initial:
             if replica > 1:
-                with pd.ExcelWriter('InitialBlockedInspectors.xlsx', mode='a') as writer:
+                with pd.ExcelWriter('ExcelSheets/InitialBlockedInspectors.xlsx', mode='a') as writer:
                     dataframe.to_excel(writer, sheet_name=sheetName)
             else:
-                with pd.ExcelWriter('InitialBlockedInspectors.xlsx') as writer:
+                with pd.ExcelWriter('ExcelSheets/InitialBlockedInspectors.xlsx') as writer:
                     dataframe.to_excel(writer, sheet_name=sheetName)
         else:
             if replica > 1:
-                with pd.ExcelWriter('BlockedInspectors.xlsx', mode='a') as writer:
+                with pd.ExcelWriter('ExcelSheets/BlockedInspectors.xlsx', mode='a') as writer:
                     dataframe.to_excel(writer, sheet_name=sheetName)
             else:
-                with pd.ExcelWriter('BlockedInspectors.xlsx') as writer:
+                with pd.ExcelWriter('ExcelSheets/BlockedInspectors.xlsx') as writer:
                     dataframe.to_excel(writer, sheet_name=sheetName)
 
     '''
@@ -42,17 +42,17 @@ class Calculations():
         sheetName = 'Simulation_' + str(replica)
         if initial:
             if replica > 1:
-                with pd.ExcelWriter('initialProductOutputs.xlsx', mode='a') as writer:
+                with pd.ExcelWriter('ExcelSheets/InitialProductOutputs.xlsx', mode='a') as writer:
                     dataframe.to_excel(writer, sheet_name=sheetName)
             else:
-                with pd.ExcelWriter('initialProductOutputs.xlsx') as writer:
+                with pd.ExcelWriter('ExcelSheets/InitialProductOutputs.xlsx') as writer:
                     dataframe.to_excel(writer, sheet_name=sheetName)
         else:
             if replica > 1:
-                with pd.ExcelWriter('productOutputs.xlsx', mode='a') as writer:
+                with pd.ExcelWriter('ExcelSheets/ProductOutputs.xlsx', mode='a') as writer:
                     dataframe.to_excel(writer, sheet_name=sheetName)
             else:
-                with pd.ExcelWriter('productOutputs.xlsx') as writer:
+                with pd.ExcelWriter('ExcelSheets/ProductOutputs.xlsx') as writer:
                     dataframe.to_excel(writer, sheet_name=sheetName)
 
     '''
@@ -107,9 +107,9 @@ class Calculations():
                                                1 + (1 / math.sqrt(self.replicas))))
 
         if initial:
-            dataframe.to_excel('Initial_Simulation_Block_Times.xlsx', index=True)
+            dataframe.to_excel('ExcelSheets/Initial_Simulation_Block_Times.xlsx', index=True)
         else:
-            dataframe.to_excel('Simulation_Block_Times.xlsx', index=False)
+            dataframe.to_excel('ExcelSheets/Simulation_Block_Times.xlsx', index=False)
 
     '''
     Calculates the average, standard deviation, CI, and PI of the Throughputs
@@ -146,9 +146,9 @@ class Calculations():
                                                1 + (1 / math.sqrt(self.replicas))))
 
         if initial:
-            dataframe.to_excel('Initial_Simulation_Throughputs.xlsx', index=True)
+            dataframe.to_excel('ExcelSheets/Initial_Simulation_Throughputs.xlsx', index=True)
         else:
-            dataframe.to_excel('Simulation_Throughputs.xlsx', index=False)
+            dataframe.to_excel('ExcelSheets/Simulation_Throughputs.xlsx', index=False)
 
     '''
     Calculates the throughput of each product type
@@ -160,4 +160,4 @@ class Calculations():
         eachProduct.loc[rep] = rep, len(p1.index) / (self.RUN_TIME / 60), len(p2.index) / (self.RUN_TIME / 60), \
                                len(p3.index) / (self.RUN_TIME / 60)
         if rep == self.replicas:
-            eachProduct.to_excel('EachProductThroughput.xlsx', index=False)
+            eachProduct.to_excel('ExcelSheets/EachProductThroughput.xlsx', index=False)
