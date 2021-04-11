@@ -115,6 +115,8 @@ def originalScheduling(workstations, component):
 
 '''
 Alternate Scheduling for Inspector 1 
+places the C1 in the next workstation in 
+order from 1-3
 '''
 def schedulingAlternative1(workstations, component):
     global alternate
@@ -137,6 +139,9 @@ def schedulingAlternative1(workstations, component):
 
 '''
 Alternate Scheduling for Inspector 1 
+places the C1 in workstation 2 or 3
+if they have a component waiting and room for C1
+if not place in Workstation 1
 '''
 def schedulingAlternative2(workstation, component):
     if workstation[1].checkBuffer("C2") > 0 and workstation[1].checkBuffer(component.name) < 2:
